@@ -1,0 +1,13 @@
+{
+  "tasks": {
+    "test": "deno test --allow-read --allow-write --allow-env --allow-net tests/"
+  },
+  "imports": {
+    "yaml": "npm:yaml@^2.7.0",
+    "typebox": "npm:typebox@^1.1.38",
+    "@std/assert": "jsr:@std/assert@^1.0.19"
+  },
+  "compilerOptions": {
+    "lib": ["deno.ns", "dom", "esnext"]
+  }
+}

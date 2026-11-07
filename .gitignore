@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Azk derived database (source of truth is notes/*.md)
+.azk/
+
+# Environment and local overrides
+.env
+.env.local
+
+# Test coverage, temp dirs & build
+coverage/
+dist/
+.tmp_*
+tests/.tmp_*
+*.log
