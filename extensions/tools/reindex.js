@@ -1,12 +1,12 @@
-import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
-import { Type } from "typebox";
-import { deleteOrphans, getAzkMeta, replaceLinksForNote, upsertAzk } from "../core/db.ts";
-import { embed } from "../core/embeddings.ts";
-import { hashContent, listNoteIds, readNote } from "../core/fs.ts";
-import { resolveAzkSettings } from "../core/host-sync.ts";
-import type { AzkReindexResult } from "../core/types.ts";
+import { deleteOrphans, getAzkMeta, replaceLinksForNote, upsertAzk } from "../core/db.js";
+import { embed } from "../core/embeddings.js";
+import { hashContent, listNoteIds, readNote } from "../core/fs.js";
+import { resolveAzkSettings } from "../core/host-sync.js";
 
-export const reindexTool: ToolDefinition = {
+/** @typedef {import("../core/types.js").AzkReindexResult} AzkReindexResult */
+
+/** @type {import("@earendil-works/pi-coding-agent").ToolDefinition} */
+export const reindexTool = {
   name: "azk_reindex",
   label: "Azk Reindex",
   description:
@@ -15,7 +15,7 @@ export const reindexTool: ToolDefinition = {
   promptGuidelines: [
     "Run azk_reindex if notes were created or edited outside the tool interface, or after a fresh clone.",
   ],
-  parameters: Type.Object({}),
+  parameters: { type: "object", properties: {} },
   execute: async (_toolCallId, _params, signal, _onUpdate, ctx) => {
     const settings = await resolveAzkSettings(ctx.cwd, ctx.model);
     const ids = await listNoteIds(settings.notesDir);
@@ -31,7 +31,7 @@ export const reindexTool: ToolDefinition = {
       const note = await readNote(settings.notesDir, id);
       if (!note) continue;
 
-      const bodyHash = await hashContent(note.body);
+      const bodyHash = hashContent(note.body);
       const existing = getAzkMeta(settings.dbPath, id);
       const changed = !existing || existing.bodyHash !== bodyHash;
 
@@ -60,7 +60,8 @@ export const reindexTool: ToolDefinition = {
     }
 
     const removed = deleteOrphans(settings.dbPath, ids).length;
-    const result: AzkReindexResult = {
+    /** @type {AzkReindexResult} */
+    const result = {
       indexed,
       updated,
       removed,

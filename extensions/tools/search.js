@@ -1,11 +1,11 @@
-import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
-import { Type } from "typebox";
-import { getAllEmbeddings, getAzkMeta, searchAzk } from "../core/db.ts";
-import { cosineSimilarity, embed } from "../core/embeddings.ts";
-import { resolveAzkSettings } from "../core/host-sync.ts";
-import type { RankedAzk } from "../core/types.ts";
+import { getAllEmbeddings, getAzkMeta, searchAzk } from "../core/db.js";
+import { cosineSimilarity, embed } from "../core/embeddings.js";
+import { resolveAzkSettings } from "../core/host-sync.js";
 
-export const searchTool: ToolDefinition = {
+/** @typedef {import("../core/types.js").RankedAzk} RankedAzk */
+
+/** @type {import("@earendil-works/pi-coding-agent").ToolDefinition} */
+export const searchTool = {
   name: "azk_search",
   label: "Azk Search",
   description:
@@ -14,18 +14,21 @@ export const searchTool: ToolDefinition = {
   promptGuidelines: [
     "Before non-trivial architectural or design work, search existing notes with azk_search to retrieve prior art and project decisions.",
   ],
-  parameters: Type.Object({
-    query: Type.String({ description: "Search query or task summary" }),
-    limit: Type.Optional(
-      Type.Number({ description: "Maximum number of results to return (default: 5)" }),
-    ),
-  }),
+  parameters: {
+    type: "object",
+    properties: {
+      query: { type: "string", description: "Search query or task summary" },
+      limit: { type: "number", description: "Maximum number of results to return (default: 5)" },
+    },
+    required: ["query"],
+  },
   execute: async (_toolCallId, params, signal, _onUpdate, ctx) => {
-    const { query, limit = 5 } = params as { query: string; limit?: number };
+    const { query, limit = 5 } = params;
     const settings = await resolveAzkSettings(ctx.cwd, ctx.model);
 
     const keywordMatches = searchAzk(settings.dbPath, query, limit);
-    const ranked = new Map<string, RankedAzk>();
+    /** @type {Map<string, RankedAzk>} */
+    const ranked = new Map();
 
     for (let i = 0; i < keywordMatches.length; i++) {
       const note = keywordMatches[i];

@@ -1,4 +1,5 @@
-import { assertEquals, assertNotEquals } from "@std/assert";
+import { test } from "node:test";
+import assert from "node:assert/strict";
 import {
   closeDb,
   createLink,
@@ -11,11 +12,11 @@ import {
   replaceLinksForNote,
   searchAzk,
   upsertAzk,
-} from "../extensions/core/db.ts";
+} from "../extensions/core/db.js";
 
 const TEST_DB = ":memory:";
 
-Deno.test("db - upsert and retrieve note metadata", () => {
+test("db - upsert and retrieve note metadata", () => {
   openDb(TEST_DB);
 
   upsertAzk(
@@ -33,16 +34,16 @@ Deno.test("db - upsert and retrieve note metadata", () => {
   );
 
   const meta = getAzkMeta(TEST_DB, "20260901120000");
-  assertNotEquals(meta, null);
-  assertEquals(meta?.id, "20260901120000");
-  assertEquals(meta?.title, "Test Note");
-  assertEquals(meta?.tags, ["test", "sqlite"]);
-  assertEquals(meta?.hasEmbedding, true);
+  assert.notDeepEqual(meta, null);
+  assert.deepEqual(meta?.id, "20260901120000");
+  assert.deepEqual(meta?.title, "Test Note");
+  assert.deepEqual(meta?.tags, ["test", "sqlite"]);
+  assert.deepEqual(meta?.hasEmbedding, true);
 
   closeDb(TEST_DB);
 });
 
-Deno.test("db - FTS5 search ranking", () => {
+test("db - FTS5 search ranking", () => {
   openDb(TEST_DB);
 
   upsertAzk(
@@ -74,16 +75,16 @@ Deno.test("db - FTS5 search ranking", () => {
   );
 
   const results = searchAzk(TEST_DB, "Rust ownership", 5);
-  assertEquals(results.length, 1);
-  assertEquals(results[0].id, "note1");
+  assert.deepEqual(results.length, 1);
+  assert.deepEqual(results[0].id, "note1");
 
   const emptyResults = searchAzk(TEST_DB, "nonexistentqueryterm12345", 5);
-  assertEquals(emptyResults.length, 0);
+  assert.deepEqual(emptyResults.length, 0);
 
   closeDb(TEST_DB);
 });
 
-Deno.test("db - link graph and orphan deletion", () => {
+test("db - link graph and orphan deletion", () => {
   openDb(TEST_DB);
 
   upsertAzk(
@@ -115,22 +116,22 @@ Deno.test("db - link graph and orphan deletion", () => {
 
   createLink(TEST_DB, "note1", "note2", "contrasts with");
   const links = getLinks(TEST_DB, "note1");
-  assertEquals(links.length, 1);
-  assertEquals(links[0].fromId, "note1");
-  assertEquals(links[0].toId, "note2");
-  assertEquals(links[0].relation, "contrasts with");
+  assert.deepEqual(links.length, 1);
+  assert.deepEqual(links[0].fromId, "note1");
+  assert.deepEqual(links[0].toId, "note2");
+  assert.deepEqual(links[0].relation, "contrasts with");
 
   replaceLinksForNote(TEST_DB, "note1", [{ to: "note2", relation: "updated relation" }]);
   const updatedLinks = getLinks(TEST_DB, "note1");
-  assertEquals(updatedLinks.length, 1);
-  assertEquals(updatedLinks[0].relation, "updated relation");
+  assert.deepEqual(updatedLinks.length, 1);
+  assert.deepEqual(updatedLinks[0].relation, "updated relation");
 
   const removed = deleteOrphans(TEST_DB, ["note2"]);
-  assertEquals(removed.includes("note1"), true);
-  assertEquals(getAzkMeta(TEST_DB, "note1"), null);
+  assert.deepEqual(removed.includes("note1"), true);
+  assert.deepEqual(getAzkMeta(TEST_DB, "note1"), null);
 
   deleteAzk(TEST_DB, "note2");
-  assertEquals(getAzkMeta(TEST_DB, "note2"), null);
+  assert.deepEqual(getAzkMeta(TEST_DB, "note2"), null);
 
   closeDb(TEST_DB);
 });

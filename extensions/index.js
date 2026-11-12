@@ -1,16 +1,16 @@
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { closeAllDbs } from "./core/db.ts";
-import { resolveAzkSettings } from "./core/host-sync.ts";
-import { searchTool } from "./tools/search.ts";
-import { getTool } from "./tools/get.ts";
-import { createTool } from "./tools/create.ts";
-import { updateTool } from "./tools/update.ts";
-import { deleteTool } from "./tools/delete.ts";
-import { linkTool } from "./tools/link.ts";
-import { reindexTool } from "./tools/reindex.ts";
-import { registerAzkCommands } from "./commands/azk-command.ts";
+import { closeAllDbs } from "./core/db.js";
+import { resolveAzkSettings } from "./core/host-sync.js";
+import { searchTool } from "./tools/search.js";
+import { getTool } from "./tools/get.js";
+import { createTool } from "./tools/create.js";
+import { updateTool } from "./tools/update.js";
+import { deleteTool } from "./tools/delete.js";
+import { linkTool } from "./tools/link.js";
+import { reindexTool } from "./tools/reindex.js";
+import { registerAzkCommands } from "./commands/azk-command.js";
 
-export default function azkExtension(pi: ExtensionAPI): void {
+/** @param {import("@earendil-works/pi-coding-agent").ExtensionAPI} pi */
+export default function azkExtension(pi) {
   // 1. Register LLM Custom Tools
   pi.registerTool(searchTool);
   pi.registerTool(getTool);
@@ -26,12 +26,13 @@ export default function azkExtension(pi: ExtensionAPI): void {
   // 3. Lifecycle Hooks: Keep host in sync with Pi's active model
   pi.on("session_start", async (_event, ctx) => {
     // Check branch entries for any session-stored azk-config
-    let sessionConfig: { host?: string; model?: string } | undefined;
+    /** @type {{ host?: string, model?: string } | undefined} */
+    let sessionConfig;
     try {
       const branchEntries = ctx.sessionManager.getBranch();
       for (const entry of branchEntries) {
         if (entry.type === "custom" && entry.customType === "azk-config") {
-          const data = entry.data as { host?: string; model?: string } | undefined;
+          const data = entry.data;
           if (data) {
             sessionConfig = data;
           }

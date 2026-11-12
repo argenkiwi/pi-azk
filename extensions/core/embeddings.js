@@ -1,4 +1,4 @@
-import type { EmbeddingModelInfo } from "./types.ts";
+/** @typedef {import("./types.js").EmbeddingModelInfo} EmbeddingModelInfo */
 
 export const DEFAULT_EMBEDDING_HOST = "http://localhost:11434/v1";
 export const DEFAULT_EMBEDDING_MODEL = "embeddinggemma:latest";
@@ -7,7 +7,7 @@ export const DEFAULT_EMBEDDING_MODEL = "embeddinggemma:latest";
  * Normalizes host URL to ensure proper base for OpenAI-compatible embeddings.
  * E.g. "http://localhost:11434" -> "http://localhost:11434/v1"
  */
-export function normalizeHost(host: string): string {
+export function normalizeHost(host) {
   let trimmed = host.trim().replace(/\/+$/, "");
   if (!trimmed.endsWith("/v1") && !trimmed.endsWith("/v1/")) {
     trimmed = `${trimmed}/v1`;
@@ -19,12 +19,8 @@ export function normalizeHost(host: string): string {
  * Embeds text using an OpenAI-compatible /embeddings endpoint.
  * Never throws — returns null on error to gracefully fall back to keyword search.
  */
-export async function embed(
-  text: string,
-  model: string,
-  host: string,
-  signal?: AbortSignal,
-): Promise<number[] | null> {
+/** @returns {Promise<number[] | null>} */
+export async function embed(text, model, host, signal) {
   try {
     const normalizedHost = normalizeHost(host);
     const response = await fetch(`${normalizedHost}/embeddings`, {
@@ -47,7 +43,7 @@ export async function embed(
 /**
  * Computes cosine similarity between two numeric vectors.
  */
-export function cosineSimilarity(a: number[], b: number[]): number {
+export function cosineSimilarity(a, b) {
   if (a.length !== b.length || a.length === 0) return 0;
   let dot = 0;
   let normA = 0;
@@ -73,7 +69,7 @@ const EMBEDDING_KEYWORDS = [
   "text-similarity",
 ];
 
-function isLikelyEmbeddingModel(id: string): boolean {
+function isLikelyEmbeddingModel(id) {
   const lower = id.toLowerCase();
   return EMBEDDING_KEYWORDS.some((kw) => lower.includes(kw));
 }
@@ -82,9 +78,11 @@ function isLikelyEmbeddingModel(id: string): boolean {
  * Fetches available models from the host.
  * Checks OpenAI-compatible /v1/models and Ollama's /api/tags.
  */
-export async function fetchAvailableModels(host: string): Promise<EmbeddingModelInfo[]> {
+/** @returns {Promise<EmbeddingModelInfo[]>} */
+export async function fetchAvailableModels(host) {
   const normalizedHost = normalizeHost(host);
-  const modelsMap = new Map<string, EmbeddingModelInfo>();
+  /** @type {Map<string, EmbeddingModelInfo>} */
+  const modelsMap = new Map();
 
   // 1. Try OpenAI-compatible /models endpoint
   try {
@@ -148,10 +146,8 @@ export async function fetchAvailableModels(host: string): Promise<EmbeddingModel
 /**
  * Probes an embedding model by sending a short text embedding request.
  */
-export async function probeEmbeddingModel(
-  model: string,
-  host: string,
-): Promise<{ ok: boolean; error?: string; latencyMs?: number }> {
+/** @returns {Promise<{ ok: boolean, error?: string, latencyMs?: number }>} */
+export async function probeEmbeddingModel(model, host) {
   const start = Date.now();
   try {
     const normalizedHost = normalizeHost(host);
@@ -183,7 +179,7 @@ export async function probeEmbeddingModel(
       error: "Response did not contain an embedding vector array",
       latencyMs,
     };
-  } catch (err: unknown) {
+  } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return {
       ok: false,

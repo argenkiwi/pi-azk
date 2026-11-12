@@ -1,12 +1,15 @@
-import type { ExtensionCommandContext, ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { probeEmbeddingModel } from "../core/embeddings.ts";
-import { listNoteIds } from "../core/fs.ts";
-import { resolveAzkSettings, updateSelectedHost } from "../core/host-sync.ts";
-import { openModelSelector } from "./model-selector.ts";
-import { reindexTool } from "../tools/reindex.ts";
-import { searchTool } from "../tools/search.ts";
+import { probeEmbeddingModel } from "../core/embeddings.js";
+import { listNoteIds } from "../core/fs.js";
+import { resolveAzkSettings, updateSelectedHost } from "../core/host-sync.js";
+import { openModelSelector } from "./model-selector.js";
+import { reindexTool } from "../tools/reindex.js";
+import { searchTool } from "../tools/search.js";
 
-export function registerAzkCommands(pi: ExtensionAPI): void {
+/** @typedef {import("@earendil-works/pi-coding-agent").ExtensionCommandContext} ExtensionCommandContext */
+/** @typedef {import("@earendil-works/pi-coding-agent").ExtensionAPI} ExtensionAPI */
+
+/** @param {ExtensionAPI} pi */
+export function registerAzkCommands(pi) {
   // Direct shortcut /azk-model
   pi.registerCommand("azk-model", {
     description: "Select an embedding model for azk within Pi",
@@ -58,11 +61,12 @@ export function registerAzkCommands(pi: ExtensionAPI): void {
   });
 }
 
-async function handleHostCommand(
-  pi: ExtensionAPI,
-  ctx: ExtensionCommandContext,
-  targetHost?: string,
-): Promise<void> {
+/**
+ * @param {ExtensionAPI} pi
+ * @param {ExtensionCommandContext} ctx
+ * @param {string} [targetHost]
+ */
+async function handleHostCommand(pi, ctx, targetHost) {
   const settings = await resolveAzkSettings(ctx.cwd, ctx.model);
 
   let newHost = targetHost?.trim();
@@ -91,7 +95,8 @@ async function handleHostCommand(
   }
 }
 
-async function handleStatusCommand(ctx: ExtensionCommandContext): Promise<void> {
+/** @param {ExtensionCommandContext} ctx */
+async function handleStatusCommand(ctx) {
   const settings = await resolveAzkSettings(ctx.cwd, ctx.model);
   const noteIds = await listNoteIds(settings.notesDir);
 
@@ -124,21 +129,17 @@ async function handleStatusCommand(ctx: ExtensionCommandContext): Promise<void> 
   console.log(output);
 }
 
-async function handleReindexCommand(ctx: ExtensionCommandContext): Promise<void> {
+/** @param {ExtensionCommandContext} ctx */
+async function handleReindexCommand(ctx) {
   ctx.ui.setStatus("azk", "Reindexing notes...");
   try {
     const result = await reindexTool.execute("reindex", {}, undefined, undefined, ctx);
-    const details = result.details as {
-      indexed: number;
-      updated: number;
-      removed: number;
-      total: number;
-    };
+    const details = result.details;
     ctx.ui.notify(
       `Reindexed: ${details.indexed} new, ${details.updated} updated, ${details.removed} removed (${details.total} total)`,
       "info",
     );
-  } catch (err: unknown) {
+  } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     ctx.ui.notify(`Reindex failed: ${message}`, "error");
   } finally {
@@ -146,10 +147,11 @@ async function handleReindexCommand(ctx: ExtensionCommandContext): Promise<void>
   }
 }
 
-async function handleSearchCommand(
-  ctx: ExtensionCommandContext,
-  query: string,
-): Promise<void> {
+/**
+ * @param {ExtensionCommandContext} ctx
+ * @param {string} query
+ */
+async function handleSearchCommand(ctx, query) {
   if (!query) {
     ctx.ui.notify("Usage: /azk search <query>", "warning");
     return;
@@ -167,7 +169,7 @@ async function handleSearchCommand(
     const text = result.content[0]?.type === "text" ? result.content[0].text : "[]";
     console.log(text);
     ctx.ui.notify(`Found ${result.details?.count ?? 0} notes matching "${query}"`, "info");
-  } catch (err: unknown) {
+  } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     ctx.ui.notify(`Search failed: ${message}`, "error");
   } finally {
@@ -175,7 +177,8 @@ async function handleSearchCommand(
   }
 }
 
-function showHelp(ctx: ExtensionCommandContext): void {
+/** @param {ExtensionCommandContext} ctx */
+function showHelp(ctx) {
   const helpText = [
     "Azk commands:",
     "  /azk model           Select embedding model from host",

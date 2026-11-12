@@ -1,10 +1,9 @@
-import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
-import { Type } from "typebox";
-import { deleteAzk } from "../core/db.ts";
-import { deleteNoteFile, readNote } from "../core/fs.ts";
-import { resolveAzkSettings } from "../core/host-sync.ts";
+import { deleteAzk } from "../core/db.js";
+import { deleteNoteFile, readNote } from "../core/fs.js";
+import { resolveAzkSettings } from "../core/host-sync.js";
 
-export const deleteTool: ToolDefinition = {
+/** @type {import("@earendil-works/pi-coding-agent").ToolDefinition} */
+export const deleteTool = {
   name: "azk_delete",
   label: "Azk Delete",
   description:
@@ -13,11 +12,13 @@ export const deleteTool: ToolDefinition = {
   promptGuidelines: [
     "Delete notes that are proven obsolete, incorrect, or superseded, rather than leaving contradictions in the index.",
   ],
-  parameters: Type.Object({
-    id: Type.String({ description: "ID of note to delete" }),
-  }),
+  parameters: {
+    type: "object",
+    properties: { id: { type: "string", description: "ID of note to delete" } },
+    required: ["id"],
+  },
   execute: async (_toolCallId, params, _signal, _onUpdate, ctx) => {
-    const { id } = params as { id: string };
+    const { id } = params;
     const settings = await resolveAzkSettings(ctx.cwd, ctx.model);
 
     const existing = await readNote(settings.notesDir, id);
@@ -28,7 +29,7 @@ export const deleteTool: ToolDefinition = {
     await deleteNoteFile(settings.notesDir, id);
     deleteAzk(settings.dbPath, id);
 
-    const result = { id, deleted: true as const };
+    const result = { id, deleted: true };
     return {
       content: [
         {

@@ -1,12 +1,12 @@
-import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
-import { Type } from "typebox";
-import { upsertAzk } from "../core/db.ts";
-import { embed } from "../core/embeddings.ts";
-import { hashContent, readNote, writeNote } from "../core/fs.ts";
-import { resolveAzkSettings } from "../core/host-sync.ts";
-import type { Note } from "../core/types.ts";
+import { upsertAzk } from "../core/db.js";
+import { embed } from "../core/embeddings.js";
+import { hashContent, readNote, writeNote } from "../core/fs.js";
+import { resolveAzkSettings } from "../core/host-sync.js";
 
-export const updateTool: ToolDefinition = {
+/** @typedef {import("../core/types.js").Note} Note */
+
+/** @type {import("@earendil-works/pi-coding-agent").ToolDefinition} */
+export const updateTool = {
   name: "azk_update",
   label: "Azk Update",
   description:
@@ -15,19 +15,18 @@ export const updateTool: ToolDefinition = {
   promptGuidelines: [
     "If a search surfaces an existing note on the same topic, update it instead of creating a duplicate. If a note proves stale or wrong, update or delete it.",
   ],
-  parameters: Type.Object({
-    id: Type.String({ description: "ID of note to update" }),
-    title: Type.Optional(Type.String({ description: "New note title" })),
-    body: Type.Optional(Type.String({ description: "New note body text" })),
-    tags: Type.Optional(Type.Array(Type.String(), { description: "Updated tags array" })),
-  }),
+  parameters: {
+    type: "object",
+    properties: {
+      id: { type: "string", description: "ID of note to update" },
+      title: { type: "string", description: "New note title" },
+      body: { type: "string", description: "New note body text" },
+      tags: { type: "array", items: { type: "string" }, description: "Updated tags array" },
+    },
+    required: ["id"],
+  },
   execute: async (_toolCallId, params, signal, _onUpdate, ctx) => {
-    const { id, title, body, tags } = params as {
-      id: string;
-      title?: string;
-      body?: string;
-      tags?: string[];
-    };
+    const { id, title, body, tags } = params;
 
     const settings = await resolveAzkSettings(ctx.cwd, ctx.model);
     const existing = await readNote(settings.notesDir, id);
@@ -36,7 +35,8 @@ export const updateTool: ToolDefinition = {
       throw new Error(`Azk note not found: ${id}`);
     }
 
-    const updatedNote: Note = {
+    /** @type {Note} */
+    const updatedNote = {
       ...existing,
       title: title ?? existing.title,
       body: body ?? existing.body,
@@ -50,7 +50,7 @@ export const updateTool: ToolDefinition = {
 
     await writeNote(settings.notesDir, updatedNote);
 
-    const bodyHash = await hashContent(updatedNote.body);
+    const bodyHash = hashContent(updatedNote.body);
     upsertAzk(
       settings.dbPath,
       {
@@ -67,7 +67,7 @@ export const updateTool: ToolDefinition = {
 
     const result = {
       id,
-      updated: true as const,
+      updated: true,
       title: updatedNote.title,
       tags: updatedNote.tags,
       reEmbedded: embedding !== undefined,

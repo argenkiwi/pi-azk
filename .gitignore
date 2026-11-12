@@ -11,6 +11,4 @@ node_modules/
 # Test coverage, temp dirs & build
 coverage/
 dist/
-.tmp_*
-tests/.tmp_*
 *.log
