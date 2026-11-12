@@ -1,0 +1,22 @@
+# Development container for the Pi coding agent, created by pide.
+# Run /containerfile in Pi to add this project's toolchain, then run pide again to rebuild.
+FROM docker.io/library/node:24-bookworm-slim
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+     bash ca-certificates curl fd-find git ripgrep unzip \
+  && ln -s /usr/bin/fdfind /usr/local/bin/fd \
+  && rm -rf /var/lib/apt/lists/*
+
+ARG PI_VERSION=1.5.0
+RUN npm install -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION}
+
+# The mounted project is owned by the host user, not root.
+RUN git config --system --add safe.directory /workspace
+
+# --- Project dependencies (managed by /containerfile) ---
+
+# --- End of project dependencies ---
+
+WORKDIR /workspace
+ENTRYPOINT ["pi"]
