@@ -10,6 +10,10 @@ A Pi Coding Agent extension providing full integration with [`azk`](https://gith
 
 ---
 
+**Zero dependencies.** Plain JavaScript (ESM, typed with JSDoc) running on Node 24+ built-ins: `node:sqlite`, `fetch`, `node:crypto`, `node:test`. Nothing to install or build.
+
+---
+
 ## Installation
 
 ### User Scope (Global)
@@ -17,7 +21,7 @@ A Pi Coding Agent extension providing full integration with [`azk`](https://gith
 Install the package into your Pi user settings (`~/.pi/agent/settings.json`):
 
 ```bash
-pi install /home/argenkiwi/Code/pi-azk
+pi install /path/to/pi-azk
 ```
 
 Or from git:
@@ -31,7 +35,7 @@ pi install git:github.com/argenkiwi/pi-azk
 Install into your current project (`.pi/settings.json`):
 
 ```bash
-pi install -l /home/argenkiwi/Code/pi-azk
+pi install -l /path/to/pi-azk
 ```
 
 ### Try Without Installing
@@ -39,7 +43,7 @@ pi install -l /home/argenkiwi/Code/pi-azk
 Test the extension in a single Pi session:
 
 ```bash
-pi -e /home/argenkiwi/Code/pi-azk
+pi -e /path/to/pi-azk
 ```
 
 ---
@@ -105,8 +109,8 @@ Following Azk's design principles:
 
 ## Running Tests
 
-Run the test suite with Deno:
+Tests use Node's built-in runner and need no `npm install`:
 
 ```bash
-deno test --allow-read --allow-write --allow-env --allow-net tests/
+npm test   # node --test tests/
 ```

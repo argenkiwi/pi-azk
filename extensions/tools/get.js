@@ -1,10 +1,9 @@
-import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
-import { Type } from "typebox";
-import { getLinks } from "../core/db.ts";
-import { readNote } from "../core/fs.ts";
-import { resolveAzkSettings } from "../core/host-sync.ts";
+import { getLinks } from "../core/db.js";
+import { readNote } from "../core/fs.js";
+import { resolveAzkSettings } from "../core/host-sync.js";
 
-export const getTool: ToolDefinition = {
+/** @type {import("@earendil-works/pi-coding-agent").ToolDefinition} */
+export const getTool = {
   name: "azk_get",
   label: "Azk Get",
   description:
@@ -13,11 +12,15 @@ export const getTool: ToolDefinition = {
   promptGuidelines: [
     "Use azk_get to read 1-3 relevant notes found by azk_search before starting work on a task.",
   ],
-  parameters: Type.Object({
-    id: Type.String({ description: "Unique ID of the note to retrieve (e.g. '20260903042130')" }),
-  }),
+  parameters: {
+    type: "object",
+    properties: {
+      id: { type: "string", description: "Unique ID of the note to retrieve (e.g. '20260903042130')" },
+    },
+    required: ["id"],
+  },
   execute: async (_toolCallId, params, _signal, _onUpdate, ctx) => {
-    const { id } = params as { id: string };
+    const { id } = params;
     const settings = await resolveAzkSettings(ctx.cwd, ctx.model);
 
     const note = await readNote(settings.notesDir, id);

@@ -1,11 +1,15 @@
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import type { AzkLink, AzkMeta } from "./types.ts";
 
-const connections = new Map<string, DatabaseSync>();
+/** @typedef {import("./types.js").AzkLink} AzkLink */
+/** @typedef {import("./types.js").AzkMeta} AzkMeta */
 
-export function openDb(dbPath: string): DatabaseSync {
+/** @type {Map<string, DatabaseSync>} */
+const connections = new Map();
+
+/** @returns {DatabaseSync} */
+export function openDb(dbPath) {
   let db = connections.get(dbPath);
   if (!db) {
     if (dbPath !== ":memory:") {
@@ -40,7 +44,7 @@ export function openDb(dbPath: string): DatabaseSync {
   return db;
 }
 
-export function closeDb(dbPath: string): void {
+export function closeDb(dbPath) {
   const db = connections.get(dbPath);
   if (db) {
     try {
@@ -52,8 +56,8 @@ export function closeDb(dbPath: string): void {
   }
 }
 
-export function closeAllDbs(): void {
-  for (const [path, db] of connections.entries()) {
+export function closeAllDbs() {
+  for (const db of connections.values()) {
     try {
       db.close();
     } catch {
@@ -63,63 +67,56 @@ export function closeAllDbs(): void {
   connections.clear();
 }
 
-function toMeta(row: Record<string, unknown>): AzkMeta {
-  let tags: string[] = [];
+/** @returns {AzkMeta} */
+function toMeta(row) {
+  let tags = [];
   try {
-    tags = JSON.parse(row.tags as string);
+    tags = JSON.parse(row.tags);
   } catch {
     tags = [];
   }
   return {
-    id: row.id as string,
-    title: row.title as string,
+    id: row.id,
+    title: row.title,
     tags,
-    created: row.created as string,
-    updated: row.updated as string,
-    bodyHash: row.body_hash as string,
+    created: row.created,
+    updated: row.updated,
+    bodyHash: row.body_hash,
     hasEmbedding: row.embedding !== null && row.embedding !== undefined,
   };
 }
 
-function serializeEmbedding(vector: number[]): Uint8Array {
+function serializeEmbedding(vector) {
   return new Uint8Array(new Float32Array(vector).buffer);
 }
 
-function deserializeEmbedding(blob: Uint8Array): number[] {
+function deserializeEmbedding(blob) {
   return Array.from(
     new Float32Array(blob.buffer, blob.byteOffset, blob.byteLength / 4),
   );
 }
 
-export function getAzkMeta(dbPath: string, id: string): AzkMeta | null {
+/** @returns {AzkMeta | null} */
+export function getAzkMeta(dbPath, id) {
   const db = openDb(dbPath);
-  const row = db.prepare(`SELECT * FROM azk WHERE id = ?`).get(id) as
-    | Record<string, unknown>
-    | undefined;
+  const row = db.prepare(`SELECT * FROM azk WHERE id = ?`).get(id);
   return row ? toMeta(row) : null;
 }
 
-export function upsertAzk(
-  dbPath: string,
-  note: {
-    id: string;
-    title: string;
-    body: string;
-    tags: string[];
-    created: string;
-    updated: string;
-    bodyHash: string;
-  },
-  embedding?: number[] | null,
-): void {
+/**
+ * @param {string} dbPath
+ * @param {{ id: string, title: string, body: string, tags: string[], created: string, updated: string, bodyHash: string }} note
+ * @param {number[] | null} [embedding] undefined keeps the stored vector; null clears it
+ */
+export function upsertAzk(dbPath, note, embedding) {
   const db = openDb(dbPath);
   const tags = JSON.stringify(note.tags);
 
   const existing = db
     .prepare(`SELECT embedding FROM azk WHERE id = ?`)
-    .get(note.id) as { embedding: Uint8Array | null } | undefined;
+    .get(note.id);
 
-  let embeddingBlob: Uint8Array | null = null;
+  let embeddingBlob = null;
   if (embedding !== undefined) {
     embeddingBlob = embedding ? serializeEmbedding(embedding) : null;
   } else {
@@ -148,7 +145,7 @@ export function upsertAzk(
   ).run(note.id, note.title, note.body, tags);
 }
 
-export function deleteAzk(dbPath: string, id: string): boolean {
+export function deleteAzk(dbPath, id) {
   const db = openDb(dbPath);
   const result = db.prepare(`DELETE FROM azk WHERE id = ?`).run(id);
   db.prepare(`DELETE FROM azk_fts WHERE id = ?`).run(id);
@@ -156,15 +153,17 @@ export function deleteAzk(dbPath: string, id: string): boolean {
   return Number(result.changes) > 0;
 }
 
-export function listIndexedIds(dbPath: string): string[] {
+/** @returns {string[]} */
+export function listIndexedIds(dbPath) {
   const db = openDb(dbPath);
-  const rows = db.prepare(`SELECT id FROM azk`).all() as unknown as { id: string }[];
+  const rows = db.prepare(`SELECT id FROM azk`).all();
   return rows.map((row) => row.id);
 }
 
-export function deleteOrphans(dbPath: string, liveIds: string[]): string[] {
+/** @returns {string[]} */
+export function deleteOrphans(dbPath, liveIds) {
   const live = new Set(liveIds);
-  const removed: string[] = [];
+  const removed = [];
   for (const id of listIndexedIds(dbPath)) {
     if (!live.has(id)) {
       deleteAzk(dbPath, id);
@@ -174,7 +173,7 @@ export function deleteOrphans(dbPath: string, liveIds: string[]): string[] {
   return removed;
 }
 
-function toMatchQuery(query: string): string {
+function toMatchQuery(query) {
   const terms = query
     .split(/\s+/)
     .map((term) => term.trim())
@@ -182,11 +181,8 @@ function toMatchQuery(query: string): string {
   return terms.map((term) => `"${term.replace(/"/g, '""')}"`).join(" OR ");
 }
 
-export function searchAzk(
-  dbPath: string,
-  query: string,
-  limit: number,
-): AzkMeta[] {
+/** @returns {AzkMeta[]} */
+export function searchAzk(dbPath, query, limit) {
   const db = openDb(dbPath);
   const matchQuery = toMatchQuery(query);
   if (!matchQuery) return [];
@@ -195,9 +191,9 @@ export function searchAzk(
     .prepare(
       `SELECT id FROM azk_fts WHERE azk_fts MATCH ? ORDER BY rank LIMIT ?`,
     )
-    .all(matchQuery, limit) as unknown as { id: string }[];
+    .all(matchQuery, limit);
 
-  const records: AzkMeta[] = [];
+  const records = [];
   for (const { id } of matches) {
     const record = getAzkMeta(dbPath, id);
     if (record) records.push(record);
@@ -205,13 +201,12 @@ export function searchAzk(
   return records;
 }
 
-export function getAllEmbeddings(
-  dbPath: string,
-): { id: string; vector: number[] }[] {
+/** @returns {{ id: string, vector: number[] }[]} */
+export function getAllEmbeddings(dbPath) {
   const db = openDb(dbPath);
   const rows = db
     .prepare(`SELECT id, embedding FROM azk WHERE embedding IS NOT NULL`)
-    .all() as unknown as { id: string; embedding: Uint8Array }[];
+    .all();
 
   return rows.map((row) => ({
     id: row.id,
@@ -219,23 +214,15 @@ export function getAllEmbeddings(
   }));
 }
 
-export function createLink(
-  dbPath: string,
-  fromId: string,
-  toId: string,
-  relation: string,
-): void {
+export function createLink(dbPath, fromId, toId, relation) {
   const db = openDb(dbPath);
   db.prepare(
     `INSERT INTO links (from_id, to_id, relation, created) VALUES (?, ?, ?, ?)`,
   ).run(fromId, toId, relation, new Date().toISOString());
 }
 
-export function replaceLinksForNote(
-  dbPath: string,
-  fromId: string,
-  links: { to: string; relation: string }[],
-): void {
+/** @param {{ to: string, relation: string }[]} links */
+export function replaceLinksForNote(dbPath, fromId, links) {
   const db = openDb(dbPath);
   db.prepare(`DELETE FROM links WHERE from_id = ?`).run(fromId);
   const created = new Date().toISOString();
@@ -246,13 +233,14 @@ export function replaceLinksForNote(
   }
 }
 
-export function getLinks(dbPath: string, id: string): AzkLink[] {
+/** @returns {AzkLink[]} */
+export function getLinks(dbPath, id) {
   const db = openDb(dbPath);
   const rows = db
     .prepare(
       `SELECT from_id, to_id, relation FROM links WHERE from_id = ? OR to_id = ?`,
     )
-    .all(id, id) as unknown as { from_id: string; to_id: string; relation: string }[];
+    .all(id, id);
 
   return rows.map((row) => ({
     fromId: row.from_id,

@@ -1,21 +1,23 @@
-import type { Model } from "@earendil-works/pi-ai";
-import { DEFAULT_EMBEDDING_HOST, DEFAULT_EMBEDDING_MODEL, normalizeHost } from "./embeddings.ts";
-import { getDbPath, getNotesDir, loadWorkspaceConfig, saveWorkspaceConfig, syncProcessEnv } from "./config.ts";
-import type { AzkConfig } from "./types.ts";
+import { DEFAULT_EMBEDDING_HOST, DEFAULT_EMBEDDING_MODEL, normalizeHost } from "./embeddings.js";
+import { getDbPath, getNotesDir, loadWorkspaceConfig, saveWorkspaceConfig, syncProcessEnv } from "./config.js";
 
-export interface ResolvedAzkSettings {
-  host: string;
-  model: string;
-  notesDir: string;
-  dbPath: string;
-  hostSource: "pinned" | "pi-active-model" | "env" | "default";
-  modelSource: "pinned" | "env" | "default";
-}
+/** @typedef {import("./types.js").AzkConfig} AzkConfig */
+/** @typedef {import("@earendil-works/pi-ai").Model<any>} PiModel */
+/**
+ * @typedef {object} ResolvedAzkSettings
+ * @property {string} host
+ * @property {string} model
+ * @property {string} notesDir
+ * @property {string} dbPath
+ * @property {"pinned" | "pi-active-model" | "env" | "default"} hostSource
+ * @property {"pinned" | "env" | "default"} modelSource
+ */
 
 /**
  * Extracts a normalized OpenAI-compatible API base URL from a model or provider URL.
  */
-export function extractHostFromModel(model?: Model<any>): string | null {
+/** @param {PiModel} [model] @returns {string | null} */
+export function extractHostFromModel(model) {
   if (!model || !model.baseUrl) return null;
   return normalizeHost(model.baseUrl);
 }
@@ -24,19 +26,23 @@ export function extractHostFromModel(model?: Model<any>): string | null {
  * Resolves current effective azk settings based on project configuration,
  * Pi's active model, environment variables, and defaults.
  */
-export async function resolveAzkSettings(
-  cwd: string,
-  activeModel?: Model<any>,
-  sessionOverride?: Partial<AzkConfig>,
-): Promise<ResolvedAzkSettings> {
+/**
+ * @param {string} cwd
+ * @param {PiModel} [activeModel]
+ * @param {Partial<AzkConfig>} [sessionOverride]
+ * @returns {Promise<ResolvedAzkSettings>}
+ */
+export async function resolveAzkSettings(cwd, activeModel, sessionOverride) {
   const diskConfig = await loadWorkspaceConfig(cwd);
-  const config: AzkConfig = {
+  const config = {
     ...diskConfig,
     ...sessionOverride,
   };
 
-  let host: string;
-  let hostSource: ResolvedAzkSettings["hostSource"];
+  /** @type {string} */
+  let host;
+  /** @type {ResolvedAzkSettings["hostSource"]} */
+  let hostSource;
 
   if (config.host) {
     host = normalizeHost(config.host);
@@ -46,7 +52,7 @@ export async function resolveAzkSettings(
     if (modelHost) {
       host = modelHost;
       hostSource = "pi-active-model";
-    } else if (typeof process !== "undefined" && process.env?.EMBEDDING_HOST) {
+    } else if (process.env.EMBEDDING_HOST) {
       host = normalizeHost(process.env.EMBEDDING_HOST);
       hostSource = "env";
     } else {
@@ -55,13 +61,15 @@ export async function resolveAzkSettings(
     }
   }
 
-  let model: string;
-  let modelSource: ResolvedAzkSettings["modelSource"];
+  /** @type {string} */
+  let model;
+  /** @type {ResolvedAzkSettings["modelSource"]} */
+  let modelSource;
 
   if (config.model) {
     model = config.model;
     modelSource = "pinned";
-  } else if (typeof process !== "undefined" && process.env?.EMBEDDING_MODEL) {
+  } else if (process.env.EMBEDDING_MODEL) {
     model = process.env.EMBEDDING_MODEL;
     modelSource = "env";
   } else {
@@ -88,21 +96,21 @@ export async function resolveAzkSettings(
 /**
  * Persists an updated embedding model to workspace config and environment.
  */
-export async function updateSelectedModel(cwd: string, model: string): Promise<AzkConfig> {
+/** @returns {Promise<AzkConfig>} */
+export async function updateSelectedModel(cwd, model) {
   const updated = await saveWorkspaceConfig(cwd, { model });
-  if (typeof process !== "undefined" && process.env) {
-    process.env.EMBEDDING_MODEL = model;
-  }
+  process.env.EMBEDDING_MODEL = model;
   return updated;
 }
 
 /**
  * Persists an updated embedding host override to workspace config and environment.
  */
-export async function updateSelectedHost(cwd: string, host?: string): Promise<AzkConfig> {
+/** @returns {Promise<AzkConfig>} */
+export async function updateSelectedHost(cwd, host) {
   const normalized = host ? normalizeHost(host) : undefined;
   const updated = await saveWorkspaceConfig(cwd, { host: normalized });
-  if (normalized && typeof process !== "undefined" && process.env) {
+  if (normalized) {
     process.env.EMBEDDING_HOST = normalized;
   }
   return updated;

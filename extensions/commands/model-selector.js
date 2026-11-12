@@ -1,11 +1,11 @@
-import type { ExtensionCommandContext, ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { fetchAvailableModels, probeEmbeddingModel } from "../core/embeddings.ts";
-import { resolveAzkSettings, updateSelectedModel } from "../core/host-sync.ts";
+import { fetchAvailableModels, probeEmbeddingModel } from "../core/embeddings.js";
+import { resolveAzkSettings, updateSelectedModel } from "../core/host-sync.js";
 
-export async function openModelSelector(
-  pi: ExtensionAPI,
-  ctx: ExtensionCommandContext,
-): Promise<void> {
+/**
+ * @param {import("@earendil-works/pi-coding-agent").ExtensionAPI} pi
+ * @param {import("@earendil-works/pi-coding-agent").ExtensionCommandContext} ctx
+ */
+export async function openModelSelector(pi, ctx) {
   const settings = await resolveAzkSettings(ctx.cwd, ctx.model);
   const host = settings.host;
   const currentModel = settings.model;
@@ -19,11 +19,12 @@ export async function openModelSelector(
   let availableModels = await fetchAvailableModels(host);
   ctx.ui.setStatus("azk", undefined);
 
-  let selectedModel: string | undefined;
+  /** @type {string | undefined} */
+  let selectedModel;
 
   if (availableModels.length > 0) {
-    const options: string[] = [];
-    const idByOption = new Map<string, string>();
+    const options = [];
+    const idByOption = new Map();
 
     for (const m of availableModels) {
       const isCurrent = m.id === currentModel;

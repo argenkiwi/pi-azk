@@ -1,27 +1,27 @@
-import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
-import { Type } from "typebox";
-import { createLink } from "../core/db.ts";
-import { readNote, writeNote } from "../core/fs.ts";
-import { resolveAzkSettings } from "../core/host-sync.ts";
-import type { Note } from "../core/types.ts";
+import { createLink } from "../core/db.js";
+import { readNote, writeNote } from "../core/fs.js";
+import { resolveAzkSettings } from "../core/host-sync.js";
 
-export const linkTool: ToolDefinition = {
+/** @typedef {import("../core/types.js").Note} Note */
+
+/** @type {import("@earendil-works/pi-coding-agent").ToolDefinition} */
+export const linkTool = {
   name: "azk_link",
   label: "Azk Link",
   description:
     "Create an explicit relational link between two existing notes. Verifies that both note IDs exist before linking.",
   promptSnippet: "Create a named link between two existing notes",
-  parameters: Type.Object({
-    fromId: Type.String({ description: "Source note ID" }),
-    toId: Type.String({ description: "Target note ID" }),
-    relation: Type.String({ description: "Short phrase explaining why notes are connected" }),
-  }),
+  parameters: {
+    type: "object",
+    properties: {
+      fromId: { type: "string", description: "Source note ID" },
+      toId: { type: "string", description: "Target note ID" },
+      relation: { type: "string", description: "Short phrase explaining why notes are connected" },
+    },
+    required: ["fromId", "toId", "relation"],
+  },
   execute: async (_toolCallId, params, _signal, _onUpdate, ctx) => {
-    const { fromId, toId, relation } = params as {
-      fromId: string;
-      toId: string;
-      relation: string;
-    };
+    const { fromId, toId, relation } = params;
 
     const settings = await resolveAzkSettings(ctx.cwd, ctx.model);
 
@@ -36,7 +36,8 @@ export const linkTool: ToolDefinition = {
       );
     }
 
-    const updatedFromNote: Note = {
+    /** @type {Note} */
+    const updatedFromNote = {
       ...fromNote,
       links: [...fromNote.links, { to: toId, relation }],
       updated: new Date().toISOString(),
@@ -45,7 +46,7 @@ export const linkTool: ToolDefinition = {
     await writeNote(settings.notesDir, updatedFromNote);
     createLink(settings.dbPath, fromId, toId, relation);
 
-    const result = { fromId, toId, relation, linked: true as const };
+    const result = { fromId, toId, relation, linked: true };
     return {
       content: [
         {

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Pi Coding Agent extension for azk Zettelkasten note-taking and hybrid search",
   "type": "module",
-  "main": "extensions/index.ts",
+  "main": "extensions/index.js",
   "keywords": [
     "pi-package",
     "zettelkasten",
@@ -11,28 +11,16 @@
     "embeddings",
     "notes"
   ],
+  "engines": {
+    "node": ">=24"
+  },
   "pi": {
     "extensions": [
-      "./extensions/index.ts"
+      "./extensions/index.js"
     ]
   },
   "scripts": {
-    "test": "deno test --allow-read --allow-write --allow-env --allow-net tests/"
-  },
-  "dependencies": {
-    "yaml": "^2.7.0"
-  },
-  "peerDependencies": {
-    "@earendil-works/pi-agent-core": "*",
-    "@earendil-works/pi-ai": "*",
-    "@earendil-works/pi-coding-agent": "*",
-    "@earendil-works/pi-tui": "*",
-    "typebox": "*"
-  },
-  "devDependencies": {
-    "@earendil-works/pi-ai": "^1.5.0",
-    "@earendil-works/pi-coding-agent": "^1.5.0",
-    "@types/node": "^22.0.0"
+    "test": "node --test tests/"
   },
   "license": "MIT"
 }
